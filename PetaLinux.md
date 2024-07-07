@@ -24,9 +24,16 @@ paginate: true
   	text-align: middle;
   }
 
-  pre {
+  /* pre {
     width:100%;
     font-size: 26px;
+  } */
+  pre {
+    width:100%;
+    /* font-size: 26px; */
+    /* white-space: break-spaces; */
+    white-space: pre-wrap; 
+    line-break: anywhere;
   }
 </style>
 
@@ -52,7 +59,12 @@ Build PetaLinux OS Image from Scratch
 # On Host machine. Open X-window permission
 $xhost +
 # Create a container
-$docker run -itd --gpus all --privileged -v /tmp/.X11-unix:/tmp/.X11-unix -v $PWD:/krs_ws -e DISPLAY=$DISPLAY --name my_krs_devenv_plnx my_kr260_dev /bin/bash
+$docker run -itd --gpus all --privileged
+ -v /tmp/.X11-unix:/tmp/.X11-unix
+ -v $PWD:/krs_ws
+ -e DISPLAY=$DISPLAY
+ --name my_krs_devenv_plnx
+ my_kr260_dev /bin/bash
 # attach the container
 $docker exec -it my_krs_devenv_plnx /bin/bash
 ```
@@ -63,8 +75,8 @@ $docker exec -it my_krs_devenv_plnx /bin/bash
 
 ##### 1.1: Complete Vitis Setup
 
-```
-bash /tools/Xilinx/Vitis/2022.1/scripts/installLibs.sh
+```sh
+$bash /tools/Xilinx/Vitis/2022.1/scripts/installLibs.sh
 ```
 
 ---
@@ -82,7 +94,9 @@ $sudo apt-get update
 $sudo apt-get install zlib1g:i386
 
 # Installation of various packages (example)
-$ sudo apt install gawk build-essential net-tools xterm autoconf libtool libtinfo5 texinfo zlib1g-dev gcc-multilib libncurses5-dev libncursesw5-dev zlib1g:i386
+$sudo apt install gawk build-essential net-tools xterm autoconf libtool
+ libtinfo5 texinfo  gcc-multilib libncurses5-dev libncursesw5-dev
+ zlib1g-dev zlib1g:i386
 ```
 
 ---
@@ -112,10 +126,12 @@ lrwxrwxrwx 1 root root 4 Oct 13  2022 /bin/sh -> bash
 
 ##### 2-0. 準備 PetaLinux Tools 安裝包。
 
+Download the PetaLinux 2022.1 installer from
+[the Xilinx website](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/embedded-design-tools/2022-1.html).
+
 ```text
-  Download the PetaLinux 2022.1 installer from the Xilinx website(https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/embedded-design-tools/2022-1.html).
-  注意：安裝包跟 peta-linux 指令皆不可為 root 用戶
-  教學：如何在 docker 中使用 non-root 權限
+注意：安裝包跟 peta-linux 指令皆不可為 root 用戶
+議題：如何在 docker 中使用 non-root 權限
 ```
 
 ---
@@ -142,7 +158,7 @@ $visudo /etc/sudoers
 ###### 2-1-2. 安裝依賴包
 
 ```sh
-sudo apt install less rsync bc
+$sudo apt install less rsync bc
 ```
 
 ---
@@ -165,7 +181,9 @@ INFO: Checking free disk space
 INFO: Checking installed tools
 INFO: Checking installed development libraries
 INFO: Checking network and other services
-WARNING: No tftp server found - please refer to "UG1144  PetaLinux Tools Documentation Reference Guide" for its impact and solution
+WARNING: No tftp server found - please refer to
+         "UG1144  PetaLinux Tools Documentation Reference Guide"
+         for its impact and solution
 INFO: Checking installer checksum...
 INFO: Extracting PetaLinux installer...
 
@@ -186,7 +204,8 @@ INFO: Installing PetaLinux...
 INFO: Checking PetaLinux installer integrity...
 INFO: Installing PetaLinux SDK to "/home/username/Petalinux/."
 INFO: Installing buildtools in /home/username/Petalinux/./components/yocto/buildtools
-INFO: Installing buildtools-extended in /home/username/Petalinux/./components/yocto/buildtools_extended
+INFO: Installing buildtools-extended in
+      /home/username/Petalinux/./components/yocto/buildtools_extended
 INFO: PetaLinux SDK has been installed to /home/username/Petalinux/.
 ```
 
@@ -202,9 +221,10 @@ $source ./Petalinux/settings.sh
 
 # 創建專案
 # use default name
-$petalinux-create -t project -s xilinx-k26-som-v2022.1-04191534.bsp
-# or
-$petalinux-create -t project -s ./assets/xilinx-kr260-starterkit-v2022.1-05140151.bsp --name plnx_os
+$petalinux-create
+ -t project
+ -s xilinx-kr260-starterkit-v2022.1-05140151.bsp
+ --name plnx_os
 ```
 
 ---
@@ -218,12 +238,13 @@ $petalinux-create -t project -s ./assets/xilinx-kr260-starterkit-v2022.1-0514015
 $sudo apt-get install locales
 $sudo dpkg-reconfigure locales
 $sudo locale-gen
-# --- 訊息 ---
+# --- 輸出訊息 ---
 Generating locales (this might take a while)...
 en_US.UTF-8... done
 Generation complete.
+# --------------
 
-#or
+# or
 $sudo apt-get install locales
 sudo locale-gen en_US.UTF-8
 ```
@@ -276,9 +297,7 @@ $tar -xzvf ../assets/meta_ros_honister-humble.tar.gz ./project-spec/meta-ros
 
 ```sh
 $vim /krs_ws/<PLNX_PROJ_DIR>/build/conf/bblayers.conf
-# ex.
-$vim /krs_ws/xilinx-k26-som-2022.1/build/conf/bblayers.conf
-# or
+# eg.
 $vim /krs_ws/plnx_os/build/conf/bblayers.conf
 ```
 
@@ -307,11 +326,7 @@ ROS_DISTRO = "humble"
   ${SDKBASEMETAPATH}/layers/meta-security/meta-tpm \
   /krs_ws/xilinx-k26-som-2022.1/project-spec/meta-user \
   /krs_ws/xilinx-k26-som-2022.1/components/yocto/workspace \
-# --- 待確認部份(不加) ---
-  ${SDKBASEMETAPATH}/layers/meta-ros/meta-ros-common \
-  ${SDKBASEMETAPATH}/layers/meta-ros/meta-ros2 \
-  ${SDKBASEMETAPATH}/layers/meta-ros/meta-ros2-humble \
-# --- 加入部份 ---
+  ###### --- 加入部份 --- ######
   ${SDKBASEMETAPATH}/../../project-spec/meta-ros/meta-ros2-humble \
   ${SDKBASEMETAPATH}/../../project-spec/meta-ros/meta-ros2 \
   ${SDKBASEMETAPATH}/../../project-spec/meta-ros/meta-ros-common \
@@ -459,15 +474,15 @@ EOF
 
 ---
 
-#### ISSUE: 預防`git pull`授權失敗
+#### ISSUE: 出現`git pull`授權失敗錯誤
 
-###### step 1
+###### step 1: 確認憑證是否存在
 
 ```sh
 $ls /usr/local/oe-sdk-hardcoded-buildpath/sysroots/x86_64-petalinux-linux/etc/ssl/certs/
 ```
 
-###### step 2
+###### step 2: 創建憑證存放路徑
 
 ```sh
 $sudo mkdir -p /usr/local/oe-sdk-hardcoded-buildpath/sysroots/x86_64-petalinux-linux/etc/ssl/certs/
@@ -475,7 +490,7 @@ $sudo mkdir -p /usr/local/oe-sdk-hardcoded-buildpath/sysroots/x86_64-petalinux-l
 
 ---
 
-###### step 3
+###### step 3: 重新安裝憑證
 
 ```sh
 $sudo rm -f /etc/ssl/certs/ca-bundle.crt
@@ -483,10 +498,11 @@ $sudo apt reinstall ca-certificates
 $sudo update-ca-certificates
 ```
 
-###### step 4
+###### step 4: 複製憑證到指定路徑
 
 ```sh
-$sudo cp /etc/ssl/certs/ca-certificates.crt /usr/local/oe-sdk-hardcoded-buildpath/sysroots/x86_64-petalinux-linux/etc/ssl/certs/
+$sudo cp /etc/ssl/certs/ca-certificates.crt
+ /usr/local/oe-sdk-hardcoded-buildpath/sysroots/x86_64-petalinux-linux/etc/ssl/certs/
 ```
 
 ---
@@ -512,16 +528,22 @@ $petalinux-build
 ### 3-3. Package KR260 Boot Image
 
 - 創建 kr260 開機映像檔
-  - 在`images/linux`路徑下產生 sd-card 映像檔(petalinux-sdimage.wic)
+
+###### 預設在`images/linux`路徑下產生 sd-card 映像檔(petalinux-sdimage.wic)
 
 ```sh
-$petalinux-package --wic --bootfiles "ramdisk.cpio.gz.u-boot boot.scr Image system.dtb"
+$petalinux-package --wic
+ --bootfiles "ramdisk.cpio.gz.u-boot boot.scr Image system.dtb"
 # correct
-$petalinux-package --wic --bootfiles "rootfs.cpio.gz.u-boot boot.scr Image system.dtb"
+$petalinux-package --wic
+ --bootfiles "rootfs.cpio.gz.u-boot boot.scr Image system.dtb"
 # update
-$petalinux-package --wic --images-dir images/linux/ --bootfiles "rootfs.cpio.gz.u-boot,boot.scr,Image,system.dtb,system-zynqmp-sck-kr-g-revB.dtb"
+$petalinux-package --wic
+ --images-dir images/linux/
+ --bootfiles "rootfs.cpio.gz.u-boot,boot.scr,Image,system.dtb,system-zynqmp-sck-kr-g-revB.dtb"
 ## or
-$petalinux-package --wic --bootfiles "rootfs.cpio.gz.u-boot boot.scr Image system.dtb system-zynqmp-sck-kr-g-revB.dtb"
+$petalinux-package --wic
+ --bootfiles "rootfs.cpio.gz.u-boot boot.scr Image system.dtb system-zynqmp-sck-kr-g-revB.dtb"
 ```
 
 ---
