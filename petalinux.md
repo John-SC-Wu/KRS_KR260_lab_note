@@ -38,22 +38,20 @@ Build PetaLinux OS Image from Scratch
 
 ## Outline
 
-- step 0: create a new environment
-- step 1: complete Vitis installation
-- step 2: install Petalinux
-- Extend ROS2 in Yocto's Minimum Image
-- Build the Project
-- Package KR260 Boot Image
-- Verification
+- step 0: Create a Container Env.
+- step 1: Prepare PetaLinux Env.
+- step 2: Install PetaLinux Tools
+- step 3: Manage a PetaLinux Project
+- step 4: Verification
 
 ---
 
-## step 0: create a new environment
+## step 0: Create a Container Env.
 
 ```sh
-# host
+# On Host machine. Open X-window permission
 $xhost +
-# create a container
+# Create a container
 $docker run -itd --gpus all --privileged -v /tmp/.X11-unix:/tmp/.X11-unix -v $PWD:/krs_ws -e DISPLAY=$DISPLAY --name my_krs_devenv_plnx my_kr260_dev /bin/bash
 # attach the container
 $docker exec -it my_krs_devenv_plnx /bin/bash
@@ -61,7 +59,9 @@ $docker exec -it my_krs_devenv_plnx /bin/bash
 
 ---
 
-## step 1: complete Vitis installation
+## step 1: Prepare Petalinux Env.
+
+##### 1.1: Complete Vitis Setup
 
 ```
 bash /tools/Xilinx/Vitis/2022.1/scripts/installLibs.sh
@@ -69,9 +69,9 @@ bash /tools/Xilinx/Vitis/2022.1/scripts/installLibs.sh
 
 ---
 
-## step 2: install Petalinux
+## step 1: Prepare Petalinux Env. (cont.)
 
-### 2-1. 安裝 PetaLinux tools 所需的依賴包
+##### 1-2. 安裝 PetaLinux tools 所需的依賴包
 
 ```sh
 # Required to install zlib1g:i386
@@ -85,9 +85,13 @@ $sudo apt-get install zlib1g:i386
 $ sudo apt install gawk build-essential net-tools xterm autoconf libtool libtinfo5 texinfo zlib1g-dev gcc-multilib libncurses5-dev libncursesw5-dev zlib1g:i386
 ```
 
-### 2-2. 將預設的 Shell 由 dash 改為 bash
+---
 
-Petalinux tools 預設是使用 bash, 故須調整。
+## step 1: Prepare Petalinux Env. (cont.)
+
+##### 1-3. 將預設的 Shell 由 dash 改為 bash
+
+- Petalinux tools 預設是使用 bash。
 
 ```sh
 # Check if /bin/sh is dash or bash
@@ -104,16 +108,23 @@ lrwxrwxrwx 1 root root 4 Oct 13  2022 /bin/sh -> bash
 
 ---
 
-### 3-3. 下載/安裝 PetaLinux 安裝包。
+## step 2: Install Petalinux Tools
 
-- 下載
+##### 2-0. 準備 PetaLinux Tools 安裝包。
+
+```text
   Download the PetaLinux 2022.1 installer from the Xilinx website(https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/embedded-design-tools/2022-1.html).
   注意：安裝包跟 peta-linux 指令皆不可為 root 用戶
   教學：如何在 docker 中使用 non-root 權限
+```
 
-### 安裝
+---
 
-- 加入 user 身份的使用者 與權限密碼
+## step 2: Install Petalinux Tools (cont.)
+
+##### 2-1. 安裝 PetaLinux Tools 安裝包。
+
+###### 2-1-1. 加入 user 身份的使用者 與權限密碼
 
 ```sh
 # 創建 non-root 用戶
@@ -126,13 +137,17 @@ $passwd john
 $visudo /etc/sudoers
 ```
 
-- 安裝欠缺的安裝包
+---
+
+###### 2-1-2. 安裝依賴包
 
 ```sh
 sudo apt install less rsync bc
 ```
 
-### 正式安裝
+---
+
+###### 2-1-3. 開始安裝
 
 ```sh
 ## 切換到 non-root 用戶
@@ -175,20 +190,28 @@ INFO: Installing buildtools-extended in /home/username/Petalinux/./components/yo
 INFO: PetaLinux SDK has been installed to /home/username/Petalinux/.
 ```
 
-- 創建 Petalinux 專案
+---
+
+## step 3: Manage a Petalinux Project
+
+##### 創建 Petalinux 專案
 
 ```sh
 # 溯源 Petalinux 設定腳本
 $source ./Petalinux/settings.sh
 
 # 創建專案
+# use default name
 $petalinux-create -t project -s xilinx-k26-som-v2022.1-04191534.bsp
 # or
 $petalinux-create -t project -s ./assets/xilinx-kr260-starterkit-v2022.1-05140151.bsp --name plnx_os
 ```
 
-- 配置 Petalinux 專案
-  fix localgen issue
+---
+
+## step 3: Manage a Petalinux Project
+
+##### 先備工作: fix locale issue
 
 ```sh
 # as a non-root user
@@ -199,71 +222,67 @@ $sudo locale-gen
 Generating locales (this might take a while)...
 en_US.UTF-8... done
 Generation complete.
-```
 
-or
-
-```sh
+#or
 $sudo apt-get install locales
 sudo locale-gen en_US.UTF-8
 ```
 
-配置專案
+---
+
+##### 3-1. 創建 Petalinux 專案
+
+- 配置專案
 
 ```sh
-$cd <plnx_proj_dir> (eg. plnx_os, xilinx-k26-som-v2022.1)
-## ONLINE
+$cd <PLNX_PROJ_DIR> (eg. plnx_os, xilinx-k26-som-v2022.1)
+## 使用默認設定，連線進行設置。
 $petalinux-config --silentconfig
 ```
 
-離線配置
+---
 
-- Failure
-
-```text
-## OFFLINE, v20240551
-Yocto Settings > Add pre-mirror url >
-from `http://petalinux.xilinx.com/sswreleases/rel-v${PETALINUX_MAJOR_VER}/downloads` to `file:///krs_ws/assets/downloads_2022.1_09151236.tar.gz`
-Yocto Settings > Local sstate feeds settings >
-from `` to `file:///krs_ws/assyets/sstate_aarch64_2022.1_09151236.tar.gz`
-```
-
-- Correct
+##### 離線配置
 
 ```sh
-$cd assets
-$tar -xzvf sstate_aarch64_2022.1_09151236.tar.gz
-$tar -xzvf downloads_2022.1_09151236.tar.gz
+$mkdir -p /krs_ws/assets
+
+# 解壓
+$tar -xzvf /krs/assets/sstate_aarch64_2022.1_09151236.tar.gz
+$tar -xzvf /krs/assets/downloads_2022.1_09151236.tar.gz
 $petalinux-config
-```
 
-- Config Settings
-
-```sh
-file:///krs_ws/assets/downloads
-file:///krs_ws/assets/aarch64
+# setup petalinux-config
+Yocto Settings > Add pre-mirror url > file:///krs_ws/assets/downloads
+Yocto Settings > Local sstate feeds settings > file:///krs_ws/assets/aarch64
 
 [*] Enable BB NO NETWORK
 ```
 
-在 ROS2 Humble 加入後設層(meta-layers)，並於 Yocto 中 Petalinux 配置後設層。
+---
 
-```
-$cd <plnx_proj_dir> (eg. plnx_os, xilinx-k26-som-v2022.1)
+##### 在 ROS2 Humble 加入後設層(meta-layers)，並於 Yocto 中 Petalinux 配置後設層。
+
+```sh
+$cd <PLNX_PROJ_DIR> (eg. plnx_os, xilinx-k26-som-v2022.1)
 $git clone https://github.com/vmayoral/meta-ros -b honister-humble project-spec/meta-ros
 # or
 $tar -xzvf ../assets/meta_ros_honister-humble.tar.gz ./project-spec/meta-ros
 ```
 
-修改 bblayers.conf 檔
+---
 
-```text
-vim /krs_ws/<PLNX_PROJECT_NAME>/build/conf/bblayers.conf
+##### 修改 bblayers.conf 檔
+
+```sh
+$vim /krs_ws/<PLNX_PROJ_DIR>/build/conf/bblayers.conf
 # ex.
 $vim /krs_ws/xilinx-k26-som-2022.1/build/conf/bblayers.conf
 # or
 $vim /krs_ws/plnx_os/build/conf/bblayers.conf
 ```
+
+---
 
 頭加上
 
@@ -278,6 +297,8 @@ ROS_DISTRO = "humble"
 
 ...
 ```
+
+---
 
 尾加上
 
@@ -298,9 +319,9 @@ ROS_DISTRO = "humble"
 
 ---
 
-## Extend ROS2 in Yocto's Minimum Image
+### Extend ROS2 in Yocto's Minimum Image
 
-- 在 Yocto's Minimum Image 中擴展 ROS2 需要的內容
+<!-- 在 Yocto's Minimum Image 中擴展 ROS2 需要的內容 -->
 
 ```sh
 $cd /krs_ws/<PLNX_PROJ_NAME>(eg. plnx_os, xilinx-k26-som-2022.1)
@@ -436,21 +457,25 @@ GLIBC_GENERATE_LOCALES = "en_US.UTF-8"
 EOF
 ```
 
-## 預防`git pull`授權失敗
+---
 
-- step 1
+#### ISSUE: 預防`git pull`授權失敗
+
+###### step 1
 
 ```sh
 $ls /usr/local/oe-sdk-hardcoded-buildpath/sysroots/x86_64-petalinux-linux/etc/ssl/certs/
 ```
 
-- step 2
+###### step 2
 
 ```sh
 $sudo mkdir -p /usr/local/oe-sdk-hardcoded-buildpath/sysroots/x86_64-petalinux-linux/etc/ssl/certs/
 ```
 
-- step 3
+---
+
+###### step 3
 
 ```sh
 $sudo rm -f /etc/ssl/certs/ca-bundle.crt
@@ -458,7 +483,7 @@ $sudo apt reinstall ca-certificates
 $sudo update-ca-certificates
 ```
 
-- step 4
+###### step 4
 
 ```sh
 $sudo cp /etc/ssl/certs/ca-certificates.crt /usr/local/oe-sdk-hardcoded-buildpath/sysroots/x86_64-petalinux-linux/etc/ssl/certs/
@@ -466,11 +491,9 @@ $sudo cp /etc/ssl/certs/ca-certificates.crt /usr/local/oe-sdk-hardcoded-buildpat
 
 ---
 
-## Build the Project
+### 3-2. Build the Project
 
-- 建置專案
-
-Before building the last thing you need to do is to add in project-spec/meta-user/conf/petalinuxbsp.conf the next line:
+###### Before building the last thing you need to do is to add in project-spec/meta-user/conf/petalinuxbsp.conf the next line: (This solves some problems with building the image)
 
 ```sh
 $vim project-spec/meta-user/conf/petalinuxbsp.conf
@@ -478,18 +501,15 @@ $vim project-spec/meta-user/conf/petalinuxbsp.conf
 SIGGEN_UNLOCKED_RECIPES += "gcc-cross-aarch64"
 ```
 
-This solves some problems with building the image.
-
 ```sh
-$cd /krs_ws/xilinx-k26-som-2022.1
-# or
-$cd /krs_ws/plnx_os
+$cd /krs_ws/<PLNX_PROJ_DIR>
+# eg. cd /krs_ws/plnx_os
 $petalinux-build
 ```
 
 ---
 
-## Package KR260 Boot Image
+### 3-3. Package KR260 Boot Image
 
 - 創建 kr260 開機映像檔
   - 在`images/linux`路徑下產生 sd-card 映像檔(petalinux-sdimage.wic)
@@ -506,7 +526,7 @@ $petalinux-package --wic --bootfiles "rootfs.cpio.gz.u-boot boot.scr Image syste
 
 ---
 
-## Verification
+## 4. Verification
 
 - 運行 ROS2 minimal publisher/subscriber 範例
 
